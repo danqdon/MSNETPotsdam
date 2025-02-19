@@ -106,11 +106,6 @@ class PotsdamSplitDataset(Dataset):
 
         # Assert the image has 4 channels
         assert img.shape[0] == 4, f"Expected image with 4 channels, but got {img.shape[0]} channels for {img_path}"
-        
-        # Debug prints (you may want to remove these later)
-        if idx == 0:
-            print(f"Sample image shape: {img.shape}")
-            print(f"Sample mask shape: {mask.shape}")
 
         return {
             'image': torch.as_tensor(img.copy()).float(),

@@ -47,6 +47,7 @@ class rgb_net(nn.Module):
     def __init__(self, num_classes, filters=32):
         super().__init__()
         self.rgb = resnet50(pretrained=True)
+        # decoder
         self.dec5 = DecoderBlock(2048, filters * 16)
         self.dec4 = DecoderBlock(2048 + filters * 4, filters * 16)
         self.dec3 = DecoderBlock(1024 + filters * 4, filters * 8)
@@ -73,6 +74,17 @@ class nnn_net(nn.Module):
     def __init__(self, num_classes, filters=32):
         super().__init__()
         self.nnn = resnet50(pretrained=True)
+        # Modify the first convolution to accept 1 channel instead of 3:
+        self.nnn.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        # Initialize the new conv1 weights by averaging the pre-trained weights across the channel dimension
+        with torch.no_grad():
+            # Get the original conv1 weights from a temporary resnet50
+            temp_conv1 = resnet50(pretrained=True).conv1.weight.data  # shape [64,3,7,7]
+            # Average along channel dimension and add a singleton dimension so shape becomes [64,1,7,7]
+            new_weight = temp_conv1.mean(dim=1, keepdim=True)
+            self.nnn.conv1.weight.copy_(new_weight)
+
+        # decoder
         self.dec5 = DecoderBlock(2048, filters * 16)
         self.dec4 = DecoderBlock(2048 + filters * 4, filters * 16)
         self.dec3 = DecoderBlock(1024 + filters * 4, filters * 8)
@@ -109,9 +121,6 @@ class MSNet(nn.Module):
         input_size = (rgbnnd.size(2), rgbnnd.size(3))
         rgb = rgbnnd[:, :3]
         nnn = rgbnnd[:, 3:]
-        # Debug prints to check shapes:
-        # print("RGB branch input shape:", rgb.shape)
-        # print("NNN branch input shape:", nnn.shape)
         rgb_dec1, rgb_dec2, rgb_dec3, rgb_dec4 = self.rgb(rgb)
         nnn_dec1, nnn_dec2, nnn_dec3, nnn_dec4 = self.nnn(nnn)
         dec1 = torch.cat((rgb_dec1, nnn_dec1), dim=1)
