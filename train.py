@@ -60,6 +60,7 @@ def parse_arguments():
     parser.add_argument("--classes-json", type=str,
                         default="/mnt/e/ISPRS-Potsdam-adri/postdam_classes.json",
                         help="Path to the classes JSON file.")
+    parser.add_argument("--base-dir", type=str, required=True, help="Base directory for dataset files")
     return parser.parse_args()
 
 def main():
@@ -68,7 +69,15 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     print("Loading dataset...")
-    dataset = PotsdamSplitDataset(args.images_csv, args.labels_csv, args.classes_json, scale=1.0, base_dir=None)
+    
+    dataset = PotsdamSplitDataset(
+    args.images_csv, 
+    args.labels_csv, 
+    args.classes_json, 
+    scale=1.0, 
+    base_dir=args.base_dir
+    )
+    
     print(f"Dataset loaded with {len(dataset)} samples.")
     train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
